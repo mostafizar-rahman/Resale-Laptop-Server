@@ -43,6 +43,12 @@ async function run() {
             res.send(result)
         })
 
+        app.post('/addProducts', async (req, res) => {
+            const product = req.body;
+            const result = await sellersCollection.insertOne(product)
+            res.send(result)
+        })
+
         // Products fetch by id
         app.get('/products/:id', async (req, res) => {
             const id = req.params.id;
@@ -51,10 +57,21 @@ async function run() {
             res.send(result)
         })
 
+        // Buyer add product her db
         app.post('/product', async (req, res) => {
             const product = req.body;
             const result = await buyersCollection.insertOne(product)
             res.send(result)
+        })
+
+        // Buyer get product her db
+        app.get('/product', async (req, res) => {
+            const email = req.query.email;
+            console.log(email)
+            const query = { email: email }
+            const user = await buyersCollection.find(query).toArray()
+            console.log(user)
+            res.send(user)
         })
 
         app.post('/user', async (req, res) => {
@@ -63,10 +80,10 @@ async function run() {
             res.send(result)
         })
 
-        app.get('/user', async(req, res) => {
+        app.get('/user', async (req, res) => {
             const email = req.query.email;
             console.log(email)
-            const query = {email: email}
+            const query = { email: email }
             const user = await usersCollection.findOne(query)
             res.send(user)
         })
