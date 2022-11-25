@@ -28,6 +28,17 @@ async function run() {
             res.send(result)
         })
 
+        app.put('/categorys', async (req, res) => {
+            const categoty = req.body;
+            const filter = { name: categoty }
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: categoty
+            };
+            const result = await categorysCollection.updateOne(filter, updateDoc, options)
+            res.send(result)
+        })
+
         // Fetch all Products from db
         app.get('/products', async (req, res) => {
             const query = {}
@@ -47,6 +58,7 @@ async function run() {
             const product = req.body;
             const result = await sellersCollection.insertOne(product)
             res.send(result)
+            console.log(result)
         })
 
         // Products fetch by id
