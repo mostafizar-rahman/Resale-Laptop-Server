@@ -15,9 +15,9 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 
 async function run() {
     const categorysCollection = client.db('resell_laptop').collection('categorys')
-    const productsCollection = client.db('resell_laptop').collection('prodcts')
-    const buyersCollection = client.db('resell_laptop').collection('buyers')
-    const sellersCollection = client.db('resell_laptop').collection('sellers')
+    const newistProductsCollection = client.db('resell_laptop').collection('prodcts')
+    const buyersProductCollection = client.db('resell_laptop').collection('buyers')
+    const sellersProductCollection = client.db('resell_laptop').collection('sellers')
     const usersCollection = client.db('resell_laptop').collection('users')
 
     try {
@@ -40,9 +40,15 @@ async function run() {
         })
 
         // Fetch all Products from db
-        app.get('/products', async (req, res) => {
+        app.get('/newistProduct', async (req, res) => {
             const query = {}
-            const result = await productsCollection.find(query).toArray()
+            const result = await newistProductsCollection.find(query).limit(10).sort({date: -1}).toArray()
+            res.send(result)
+        })
+
+        app.post('/addNewistProduct', async (req, res) => {
+            const product = req.body;
+            const result = await newistProductsCollection.insertOne(product)
             res.send(result)
         })
 
@@ -50,29 +56,31 @@ async function run() {
         app.get('/products/:cata_id', async (req, res) => {
             const cataId = req.params.cata_id;
             const query = { cata_id: cataId }
-            const result = await productsCollection.find(query).toArray()
+            const result = await sellersProductCollection.find(query).toArray()
             res.send(result)
         })
 
         app.post('/addProducts', async (req, res) => {
             const product = req.body;
-            const result = await sellersCollection.insertOne(product)
+            const result = await sellersProductCollection.insertOne(product)
             res.send(result)
             console.log(result)
         })
 
-        // Products fetch by id
-        app.get('/products/:id', async (req, res) => {
-            const id = req.params.id;
-            const query = {}
-            const result = await productsCollection.findOne(query)
+        // My Product route
+        app.get('/myProduct', async (req, res) => {
+            const email = req.query.email;
+            const query = {userEmail: email}
+            const result = await newistProductsCollection.find(query).toArray()
             res.send(result)
         })
+
+        
 
         // Buyer add product her db
         app.post('/product', async (req, res) => {
             const product = req.body;
-            const result = await buyersCollection.insertOne(product)
+            const result = await buyersProductCollection.insertOne(product)
             res.send(result)
         })
 
@@ -81,7 +89,7 @@ async function run() {
             const email = req.query.email;
             console.log(email)
             const query = { email: email }
-            const user = await buyersCollection.find(query).toArray()
+            const user = await buyersProductCollection.find(query).toArray()
             console.log(user)
             res.send(user)
         })
