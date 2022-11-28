@@ -1,8 +1,9 @@
 const express = require('express')
 const app = express()
 const cors = require("cors")
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
+// const stripe = require("stripe")('sk_test_51M8RDNLKi6AEIY807RsdoBfRvECyBfAo3qJVjgq9qFEJyheqLimyAexC3I67Pja7dJvOmelFTQMIz22D5ycTRsMk00MSBHOhfg');
 
 app.use(cors())
 app.use(express.json())
@@ -30,11 +31,13 @@ async function run() {
 
         app.put('/categorys', async (req, res) => {
             const categoty = req.body;
-            const filter = { name: categoty }
+            const filter = { name: categoty.name }
+            console.log(filter)
             const options = { upsert: true };
             const updateDoc = {
                 $set: categoty
             };
+            console.log(updateDoc)
             const result = await categorysCollection.updateOne(filter, updateDoc, options)
             res.send(result)
         })
@@ -42,7 +45,7 @@ async function run() {
         // Fetch all Products from db
         app.get('/newistProduct', async (req, res) => {
             const query = {}
-            const result = await newistProductsCollection.find(query).limit(10).sort({date: -1}).toArray()
+            const result = await newistProductsCollection.find(query).limit(10).sort({ date: -1 }).toArray()
             res.send(result)
         })
 
@@ -60,22 +63,43 @@ async function run() {
             res.send(result)
         })
 
+        app.put('/addProducts/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) }
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    ads: 'advertised'
+                }
+            };
+            const result = await sellersProductCollection.updateOne(filter, updateDoc, options)
+            res.send(result)
+        })
+
+
         app.post('/addProducts', async (req, res) => {
             const product = req.body;
             const result = await sellersProductCollection.insertOne(product)
             res.send(result)
-            console.log(result)
         })
+
+
 
         // My Product route
         app.get('/myProduct', async (req, res) => {
             const email = req.query.email;
-            const query = {userEmail: email}
-            const result = await newistProductsCollection.find(query).toArray()
+            const query = { userEmail: email }
+            const result = await sellersProductCollection.find(query).toArray()
             res.send(result)
         })
 
-        
+        app.get('/adsProduct', async (req, res) => {
+          
+            const query = {ads: "advertised"}
+            const result = await sellersProductCollection.find(query).toArray()
+            res.send(result)
+        })
+
 
         // Buyer add product her db
         app.post('/product', async (req, res) => {
@@ -87,10 +111,8 @@ async function run() {
         // Buyer get product her db
         app.get('/product', async (req, res) => {
             const email = req.query.email;
-            console.log(email)
             const query = { email: email }
             const user = await buyersProductCollection.find(query).toArray()
-            console.log(user)
             res.send(user)
         })
 
@@ -102,17 +124,51 @@ async function run() {
 
         app.get('/user', async (req, res) => {
             const email = req.query.email;
-            console.log(email)
             const query = { email: email }
             const user = await usersCollection.findOne(query)
             res.send(user)
         })
+
+        app.get('/user/:buyer', async (req, res) => {
+            const buyer = req.params.buyer;
+            console.log(buyer)
+            const query = { userRole: buyer }
+            const user = await usersCollection.find(query).toArray()
+            res.send(user)
+        })
+
+        app.get('/user/:seller', async (req, res) => {
+            const seller = req.params.seller;
+            console.log(seller)
+            const query = { userRole: seller }
+            const user = await usersCollection.find(query).toArray()
+            res.send(user)
+        })
+
+        // app.post("/create-payment-intent", async (req, res) => {
+        //     const pirce = req.body;
+        //     const amount = pirce * 100
+
+        //     // Create a PaymentIntent with the order amount and currency
+        //     const paymentIntent = await stripe.paymentIntents.create({
+        //         amount: amount,
+        //         currency: "usd",
+        //         "payment_methods_types": [
+        //             "card"
+        //         ]
+        //     });
+
+        //     res.send({
+        //         clientSecret: paymentIntent.client_secret,
+        //     });
+        // });
 
     }
     finally {
 
     }
 }
+
 run().catch(console.dir)
 
 app.get('/', (req, res) => {
@@ -120,5 +176,5 @@ app.get('/', (req, res) => {
 })
 
 app.listen(port, () => {
-    console.log('server is running')
+
 })
