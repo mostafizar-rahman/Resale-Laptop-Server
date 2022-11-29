@@ -2,8 +2,9 @@ const express = require('express')
 const app = express()
 const cors = require("cors")
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const { query } = require('express');
 require('dotenv').config()
-// const stripe = require("stripe")('sk_test_51M8RDNLKi6AEIY807RsdoBfRvECyBfAo3qJVjgq9qFEJyheqLimyAexC3I67Pja7dJvOmelFTQMIz22D5ycTRsMk00MSBHOhfg');
+const stripe = require("stripe")('sk_test_51M8RDNLKi6AEIY807RsdoBfRvECyBfAo3qJVjgq9qFEJyheqLimyAexC3I67Pja7dJvOmelFTQMIz22D5ycTRsMk00MSBHOhfg');
 
 app.use(cors())
 app.use(express.json())
@@ -20,6 +21,7 @@ async function run() {
     const buyersProductCollection = client.db('resell_laptop').collection('buyers')
     const sellersProductCollection = client.db('resell_laptop').collection('sellers')
     const usersCollection = client.db('resell_laptop').collection('users')
+    const paymentsCollection = client.db('resell_laptop').collection('payments');
 
     try {
         // Fetch all categorys from db
@@ -93,9 +95,15 @@ async function run() {
             res.send(result)
         })
 
+        app.delete('/myProduct/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) }
+            const result = sellersProductCollection.deleteOne(query)
+            res.send(result)
+        })
+
         app.get('/adsProduct', async (req, res) => {
-          
-            const query = {ads: "advertised"}
+            const query = { ads: "advertised" }
             const result = await sellersProductCollection.find(query).toArray()
             res.send(result)
         })
@@ -106,6 +114,7 @@ async function run() {
             const product = req.body;
             const result = await buyersProductCollection.insertOne(product)
             res.send(result)
+            console.log(result)
         })
 
         // Buyer get product her db
@@ -114,6 +123,13 @@ async function run() {
             const query = { email: email }
             const user = await buyersProductCollection.find(query).toArray()
             res.send(user)
+        })
+
+        app.delete('/product/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) }
+            const result = buyersProductCollection.deleteOne(query)
+            res.send(result)
         })
 
         app.post('/user', async (req, res) => {
@@ -131,7 +147,6 @@ async function run() {
 
         app.get('/user/:buyer', async (req, res) => {
             const buyer = req.params.buyer;
-            console.log(buyer)
             const query = { userRole: buyer }
             const user = await usersCollection.find(query).toArray()
             res.send(user)
@@ -139,29 +154,49 @@ async function run() {
 
         app.get('/user/:seller', async (req, res) => {
             const seller = req.params.seller;
-            console.log(seller)
             const query = { userRole: seller }
             const user = await usersCollection.find(query).toArray()
             res.send(user)
         })
 
-        // app.post("/create-payment-intent", async (req, res) => {
-        //     const pirce = req.body;
-        //     const amount = pirce * 100
+        app.delete('/user/seller/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) }
+            const result = usersCollection.deleteOne(query)
+            res.send(result)
+        })
 
-        //     // Create a PaymentIntent with the order amount and currency
-        //     const paymentIntent = await stripe.paymentIntents.create({
-        //         amount: amount,
-        //         currency: "usd",
-        //         "payment_methods_types": [
-        //             "card"
-        //         ]
-        //     });
+        app.post("/create-payment-intent", async (req, res) => {
+            const price = req.body;
+            const amount = price.price * 100
+            // Create a PaymentIntent with the order amount and currency
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: "usd",
+                "payment_method_types": [
+                    "card"
+                ]
+            });
 
-        //     res.send({
-        //         clientSecret: paymentIntent.client_secret,
-        //     });
-        // });
+            res.send({
+                clientSecret: paymentIntent.client_secret,
+            });
+        });
+
+        app.post('/payments', async(req, res) => {
+            const payment = req.body;
+            const result = await paymentsCollection.insertOne(payment);
+            const id = payment.productId
+            const filter = { _id: ObjectId(id) }
+            const updatedDoc = {
+                $set: {
+                    paid: true,
+                    transactionId: payment.transactionId
+                }
+            }
+            const updatedResult = await buyersProductCollection.updateOne(filter, updatedDoc)
+            res.send(result);
+        })
 
     }
     finally {
