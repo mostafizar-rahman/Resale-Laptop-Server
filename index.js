@@ -22,6 +22,7 @@ async function run() {
     const sellersProductCollection = client.db('resell_laptop').collection('sellers')
     const usersCollection = client.db('resell_laptop').collection('users')
     const paymentsCollection = client.db('resell_laptop').collection('payments');
+    const whiteListCollection = client.db('resell_laptop').collection('whiteList');
 
     try {
         // Fetch all categorys from db
@@ -102,6 +103,7 @@ async function run() {
             res.send(result)
         })
 
+        // Advertige Product
         app.get('/adsProduct', async (req, res) => {
             const query = { ads: "advertised" }
             const result = await sellersProductCollection.find(query).toArray()
@@ -114,7 +116,6 @@ async function run() {
             const product = req.body;
             const result = await buyersProductCollection.insertOne(product)
             res.send(result)
-            console.log(result)
         })
 
         // Buyer get product her db
@@ -132,9 +133,33 @@ async function run() {
             res.send(result)
         })
 
-        app.post('/user', async (req, res) => {
+        app.post('/whiteList', async (req, res) => {
+            const product = req.body
+            const result = await whiteListCollection.insertOne(product)
+            console.log(result)
+            res.send(result)
+        })
+
+        app.get('/whiteList', async (req, res) => {
+            const email = req.query.email;
+            const query = {email: email}
+            const result = await whiteListCollection.find(query).toArray()
+            res.send(result)
+        })
+
+        // Uer collection
+        app.put('/user', async (req, res) => {
             const user = req.body;
-            const result = await usersCollection.insertOne(user)
+            const filter = { email: user.email }
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    email: user.email,
+                    name: user.name,
+                    userRole: user.userRole
+                }
+            };
+            const result = await usersCollection.updateOne(filter, updateDoc, options)
             res.send(result)
         })
 
@@ -166,6 +191,13 @@ async function run() {
             res.send(result)
         })
 
+        app.delete('/user/buyer/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) }
+            const result = usersCollection.deleteOne(query)
+            res.send(result)
+        })
+
         app.post("/create-payment-intent", async (req, res) => {
             const price = req.body;
             const amount = price.price * 100
@@ -183,20 +215,38 @@ async function run() {
             });
         });
 
-        app.post('/payments', async(req, res) => {
+        app.post('/payments', async (req, res) => {
             const payment = req.body;
             const result = await paymentsCollection.insertOne(payment);
-            const id = payment.productId
+            const id = payment.bookingProductId
             const filter = { _id: ObjectId(id) }
             const updatedDoc = {
                 $set: {
                     paid: true,
-                    transactionId: payment.transactionId
+                    transactionId: payment.transactionId,
+                    status: 'sold'
                 }
             }
             const updatedResult = await buyersProductCollection.updateOne(filter, updatedDoc)
             res.send(result);
         })
+
+        app.put('/payments', async (req, res) => {
+            const orginalProductId = req.body;
+            console.log('or', orginalProductId)
+            const filter = { _id: ObjectId(orginalProductId) }
+            console.log('fi', filter)
+            const options = { upsert: true };
+            const updatedDoc = {
+                $set: {
+                    status: 'sold'
+                }
+            }
+            const updatedResult = await newistProductsCollection.updateOne(filter, updatedDoc, options)
+            res.send(updatedResult)
+            console.log(updatedResult)
+        })
+
 
     }
     finally {
