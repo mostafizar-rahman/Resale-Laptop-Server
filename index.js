@@ -35,12 +35,10 @@ async function run() {
         app.put('/categorys', async (req, res) => {
             const categoty = req.body;
             const filter = { name: categoty.name }
-            console.log(filter)
             const options = { upsert: true };
             const updateDoc = {
                 $set: categoty
             };
-            console.log(updateDoc)
             const result = await categorysCollection.updateOne(filter, updateDoc, options)
             res.send(result)
         })
@@ -136,7 +134,6 @@ async function run() {
         app.post('/whiteList', async (req, res) => {
             const product = req.body
             const result = await whiteListCollection.insertOne(product)
-            console.log(result)
             res.send(result)
         })
 
@@ -182,6 +179,20 @@ async function run() {
             const query = { userRole: seller }
             const user = await usersCollection.find(query).toArray()
             res.send(user)
+        })
+
+        app.put('/user/seller', async (req, res) => {
+            const email = req.query.email;
+            const body = req.body
+            const filter = { email: email }
+            const options = { upsert: true };
+            const updatedDoc = {
+                $set: {
+                    verifiedStatud: 'verifide' 
+                }
+            }
+            const updatedResult = await usersCollection.updateOne(filter, updatedDoc, options)
+            res.send(updatedResult)
         })
 
         app.delete('/user/seller/:id', async (req, res) => {
@@ -232,19 +243,18 @@ async function run() {
         })
 
         app.put('/payments', async (req, res) => {
-            const orginalProductId = req.body;
-            console.log('or', orginalProductId)
+            const {orginalProductId} = req.body;
+            console.log(orginalProductId)
             const filter = { _id: ObjectId(orginalProductId) }
-            console.log('fi', filter)
             const options = { upsert: true };
             const updatedDoc = {
                 $set: {
                     status: 'sold'
                 }
             }
-            const updatedResult = await newistProductsCollection.updateOne(filter, updatedDoc, options)
-            res.send(updatedResult)
-            console.log(updatedResult)
+            const updatedNewist = await newistProductsCollection.updateOne(filter, updatedDoc, options)
+            const updateSeller = await sellersProductCollection.updateOne(filter, updatedDoc, options)
+            res.send({updatedNewist, updateSeller })
         })
 
 
