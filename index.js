@@ -6,7 +6,9 @@ const { query } = require('express');
 require('dotenv').config()
 const stripe = require("stripe")('sk_test_51M8RDNLKi6AEIY807RsdoBfRvECyBfAo3qJVjgq9qFEJyheqLimyAexC3I67Pja7dJvOmelFTQMIz22D5ycTRsMk00MSBHOhfg');
 
-app.use(cors())
+app.use(cors({
+    origin:'*'
+}))
 app.use(express.json())
 
 const port = process.env.PORT || 5000
@@ -181,6 +183,15 @@ async function run() {
             res.send(user)
         })
 
+        app.get('/user/email', async(req, res)=>{
+            const email = req.query.email;
+            console.log(email)
+            const query = {email: email}
+            const user = await usersCollection.findOne(query)
+            console.log(user)
+            res.send(user)
+        })
+
         app.put('/user/seller', async (req, res) => {
             const email = req.query.email;
             const body = req.body
@@ -271,5 +282,5 @@ app.get('/', (req, res) => {
 })
 
 app.listen(port, () => {
-
+    console.log('Runing 5000 port')
 })
